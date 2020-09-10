@@ -22,7 +22,7 @@
 #PB_WIN_XP_VISTA_7_2008 = 1
 #PB_WIN_8_81_10_2012 = 2
 
-;Color Constants
+; Color Constants
 #PB_BLACK = 0
 #PB_DARKBLUE = 1
 #PB_BLUE = 3
@@ -254,9 +254,6 @@ Procedure.s getCurrentGPU()
   ProcedureReturn currentGPU$
 EndProcedure
 
-getCurrentGPU()
-  
-
 ; Get the HDD size & space
 Procedure getHDDSize()
   ; Get free space
@@ -277,7 +274,6 @@ Procedure getHDDSize()
   EndIf
   CloseProgram(cmd)
   freeSpace = RemoveString(freeSpace, "FreeSpace     ", #PB_String_NoCase)
-  ;Debug(Val(freeSpace) / 1073741824)
   
   ; Get HDD size
   cmd = RunProgram("cmd", "/c wmic volume get capacity", "", #PB_Program_Open | #PB_Program_Read | #PB_Program_Hide)
@@ -297,7 +293,6 @@ Procedure getHDDSize()
   EndIf
   CloseProgram(cmd)
   diskSize = RemoveString(diskSize, "Capacity     ", #PB_String_NoCase)
-  ;Debug(Val(diskSize) / 1073741824)
 EndProcedure
 
 ; Expand the cmd console
@@ -353,8 +348,6 @@ Procedure.s getCurrentRunningProcesses()
   
   ProcedureReturn runningProcesses$
 EndProcedure
-
-getCurrentRunningProcesses()
 
 ; Get the current screen resolution
 Procedure.s getScreenRes()
@@ -819,12 +812,13 @@ ConsoleColor(#PB_RED, #PB_BLACK) : Print("Resolution: ") : ConsoleColor(#PB_WHIT
 ConsoleLocate(42, 17)
 ConsoleColor(#PB_RED, #PB_RED) : Print("   ") : ConsoleColor(#PB_GREEN, #PB_GREEN) : Print("   ") : ConsoleColor(#PB_YELLOW, #PB_YELLOW) : Print("   ") : ConsoleColor(#PB_DARKBLUE, #PB_DARKBLUE) : Print("   ") : ConsoleColor(#PB_MAGENTA, #PB_MAGENTA) : Print("   ") : ConsoleColor(#PB_BLUE, #PB_BLUE) : Print("   ") : ConsoleColor(#PB_GREY, #PB_GREY) : Print("   ") : PrintN("")
 
-;Reset the console
+; Reset the console
 ConsoleColor(#PB_WHITE, #PB_BLACK) : ConsoleLocate(42, 18) : EnableGraphicalConsole(0)
 
 ;Input()
 ; IDE Options = PureBasic 5.70 LTS (Windows - x64)
 ; ExecutableFormat = Console
-; CursorPosition = 18
+; CursorPosition = 817
+; FirstLine = 763
 ; Folding = ---
 ; Executable = bin\nanofetch.exe
