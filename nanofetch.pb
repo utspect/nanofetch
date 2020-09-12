@@ -17,6 +17,10 @@
 ; BASIC ROCKS! :-)
 ;
 
+; Windows 2000 ;-)
+XIncludeFile "Libraries/Registry2.pbi"
+UseModule Registry
+
 ; Custom OS Constants
 #PB_WIN_95_98_2K = 0
 #PB_WIN_XP_VISTA_7_2008 = 1
@@ -45,7 +49,6 @@ Global conSize.SMALL_RECT
   conSize\bottom = 100
 
 Select OSVersion()
-
     Case #PB_OS_Windows_2000
       currentOS = #PB_WIN_95_98_2K
       OSName = "Microsoft Windows 2000"
@@ -99,7 +102,7 @@ Select OSVersion()
 EndSelect
 
 Dim winart2k.s(15)
- winart2k(0) = "`"
+ winart2k(0) = ""
  winart2k(1) = "      `. .`"
  winart2k(2) = "     .` `.```"
  winart2k(3) = "     ` .- `::`---"
@@ -164,7 +167,7 @@ Procedure.s getHostInfo()
     manufacturer$ = RemoveString(manufacturer$, "  ", #PB_String_NoCase)
   EndIf
   CloseProgram(cmd)
-  
+
   ProcedureReturn manufacturer$
 EndProcedure
 
@@ -187,36 +190,59 @@ EndProcedure
 
 ; Get BIOS info
 Procedure.s getBIOSInfo()
-  cmd = RunProgram("cmd", "/c wmic bios get manufacturer", "", #PB_Program_Open | #PB_Program_Read | #PB_Program_Hide)
-  If cmd
-    While ProgramRunning(cmd)
-      If AvailableProgramOutput(cmd)
-        bios$ + ReadProgramString(cmd)
-      EndIf
-    Wend
+  If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+    cmd = RunProgram("cmd", "/c wmic bios get manufacturer", "", #PB_Program_Open | #PB_Program_Read | #PB_Program_Hide)
+    If cmd
+      While ProgramRunning(cmd)
+        If AvailableProgramOutput(cmd)
+          bios$ + ReadProgramString(cmd)
+        EndIf
+      Wend
+    EndIf
+    CloseProgram(cmd)
+    bios$ = RemoveString(bios$, "Manufacturer              ", #PB_String_NoCase)
+    bios$ = RemoveString(bios$, "  ", #PB_String_NoCase)
+
+    ProcedureReturn bios$
+  Else
+    bios$ = ReadValue(#HKEY_LOCAL_MACHINE, "HARDWARE\DESCRIPTION\System", "SystemBiosVersion")
+    bios$ = RemoveString(bios$, "       ", #PB_String_NoCase)
+    bios$ = RemoveString(bios$, "    ", #PB_String_NoCase)
+    
+    ProcedureReturn bios$
   EndIf
-  CloseProgram(cmd)
-  bios$ = RemoveString(bios$, "Manufacturer              ", #PB_String_NoCase)
-  bios$ = RemoveString(bios$, "  ", #PB_String_NoCase)
-  
-  ProcedureReturn bios$
+
 EndProcedure
+
+; Get win2k CPU info
+  Procedure.s win2kCPUName()
+    cpuName$ = ReadValue(#HKEY_LOCAL_MACHINE, "HARDWARE\DESCRIPTION\System\CentralProcessor\0", "Identifier")
+
+    ProcedureReturn cpuName$
+  EndProcedure
 
 ; Get build info  
 Procedure.s getKernelInfo()
-  cmd = RunProgram("cmd", "/c wmic os get version", "", #PB_Program_Open | #PB_Program_Read | #PB_Program_Hide)
-  If cmd
-    While ProgramRunning(cmd)
-      If AvailableProgramOutput(cmd)
-        kernelVersion$ + ReadProgramString(cmd)
-      EndIf
-    Wend
-    kernelVersion$ = RemoveString(kernelVersion$, "Version   ", #PB_String_NoCase)
-    kernelVersion$ = RemoveString(kernelVersion$, "  ", #PB_String_NoCase)
+  If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+    cmd = RunProgram("cmd", "/c wmic os get version", "", #PB_Program_Open | #PB_Program_Read | #PB_Program_Hide)
+    If cmd
+      While ProgramRunning(cmd)
+        If AvailableProgramOutput(cmd)
+          kernelVersion$ + ReadProgramString(cmd)
+        EndIf
+      Wend
+      kernelVersion$ = RemoveString(kernelVersion$, "Version   ", #PB_String_NoCase)
+      kernelVersion$ = RemoveString(kernelVersion$, "  ", #PB_String_NoCase)
+    EndIf
+    CloseProgram(cmd)
+
+    ProcedureReturn kernelVersion$
+  Else
+    kernelVersion$ = ReadValue(#HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\Windows NT\CurrentVersion", "CurrentVersion")
+    build$ = ReadValue(#HKEY_LOCAL_MACHINE, "SOFTWARE\Microsoft\Windows NT\CurrentVersion", "CurrentBuildNumber")
+
+    ProcedureReturn "Version " + kernelVersion$ + " " + "(Build " + build$ + ")"
   EndIf
-  CloseProgram(cmd)
-  
-  ProcedureReturn kernelVersion$
 EndProcedure
 
 ; Get the CPU Architecture
@@ -274,7 +300,7 @@ Procedure getHDDSize()
   EndIf
   CloseProgram(cmd)
   freeSpace = RemoveString(freeSpace, "FreeSpace     ", #PB_String_NoCase)
-  
+
   ; Get HDD size
   cmd = RunProgram("cmd", "/c wmic volume get capacity", "", #PB_Program_Open | #PB_Program_Read | #PB_Program_Hide)
   If cmd
@@ -750,67 +776,115 @@ Print(UserName()) : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print("@") : ConsoleCol
 ; Print OS Data
 ConsoleLocate(40, 4)
 ConsoleColor(#PB_RED, #PB_BLACK) : Print("OS: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(OSName)
-If checkAddressWidth() = 64
-  Print(" 64-bit")
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ; Windows on Windows (since x64 binaries can be run on x86 versions of the OS via WoW)
+  If checkAddressWidth() = 64
+    Print(" 64-bit")
+  Else
+    Print(" 32-bit")
+  EndIf
 Else
+  ; Windows 2000 was only x86 so it's pretty obvious I guess..
   Print(" 32-bit")
 EndIf
+
 
 ; Print build data
 ConsoleLocate(40, 5)
 ConsoleColor(#PB_RED, #PB_BLACK) : Print("Build: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getKernelInfo())
 
 ; Print host data
-ConsoleLocate(40, 6)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("Host: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getHostInfo())
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 6)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("Host: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getHostInfo())
+EndIf
 
 ; Print motherboard data
-ConsoleLocate(40, 7)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("Motherboard: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getMotherboardInfo())
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 7)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("Motherboard: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getMotherboardInfo())
+EndIf
 
 ; Print bios data
-ConsoleLocate(40, 8)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("BIOS: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getBIOSInfo())
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 8)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("BIOS: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getBIOSInfo())
+Else
+  ConsoleLocate(40, 6)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("BIOS: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getBIOSInfo())
+EndIf
 
 ; Print CPU
-ConsoleLocate(40, 9)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("CPU: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(CPUName()) : Print(" (" + Str(CountCPUs(#PB_System_CPUs)) + ")")
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 9)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("CPU: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(CPUName()) : Print(" (" + Str(CountCPUs(#PB_System_CPUs)) + ")")
+Else
+  ConsoleLocate(40, 7)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("CPU: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(win2kCPUName()) : Print(" (" + Str(CountCPUs(#PB_System_CPUs)) + ")")
+EndIf
 
 ; Print GPU
-ConsoleLocate(40, 10)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("GPU: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getCurrentGPU())
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 10)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("GPU: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getCurrentGPU())
+EndIf
 
 ; Print main HDD data
-ConsoleLocate(40, 11)
-getHDDSize()
-freeSpaceMiB = (Val(diskSize) / 1073741824) - (Val(freeSpace) / 1073741824)
-totalSpace = Val(diskSize) / 1073741824
-floatTotal.f = freeSpaceMiB / totalSpace
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("HDD: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(Str((Val(diskSize) - Val(freeSpace)) / 1073741824) + "G /" + " " + Str(Val(diskSize) / 1073741824) + "G" + " (" + Str(floatTotal * 100) + "%)")
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 11)
+  getHDDSize()
+  freeSpaceMiB = (Val(diskSize) / 1073741824) - (Val(freeSpace) / 1073741824)
+  totalSpace = Val(diskSize) / 1073741824
+  floatTotal.f = freeSpaceMiB / totalSpace
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("HDD: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(Str((Val(diskSize) - Val(freeSpace)) / 1073741824) + "G /" + " " + Str(Val(diskSize) / 1073741824) + "G" + " (" + Str(floatTotal * 100) + "%)")
+EndIf
 
 ; Print RAM data
-ConsoleLocate(40, 12)
-availRam = getAvailableRAM()
-totalRam = getTotalRAM()
-finalAvailableRAM = (totalRAM - availRam) / 1048576
-floatRamTotal.f = finalAvailableRAM / (totalRam / 1048576)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("Memory: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(Str(finalAvailableRAM) + "MB /" + " " + Str(totalRAM / 1048576) + "MB" + " (" + Str(floatRamTotal * 100) + "%)")
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 12)
+  availRam = getAvailableRAM()
+  totalRam = getTotalRAM()
+  finalAvailableRAM = (totalRAM - availRam) / 1048576
+  floatRamTotal.f = finalAvailableRAM / (totalRam / 1048576)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("Memory: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(Str(finalAvailableRAM) + "MB /" + " " + Str(totalRAM / 1048576) + "MB" + " (" + Str(floatRamTotal * 100) + "%)")
+Else
+  ConsoleLocate(40, 8)
+  availRam = getAvailableRAM()
+  totalRam = getTotalRAM()
+  finalAvailableRAM = (totalRAM - availRam) / 1048576
+  floatRamTotal.f = finalAvailableRAM / (totalRam / 1048576)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("Memory: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(Str(finalAvailableRAM) + "MB /" + " " + Str(totalRAM / 1048576) + "MB" + " (" + Str(floatRamTotal * 100) + "%)")
+EndIf
 
 ; Print uptime data
-ConsoleLocate(40, 13)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("Uptime: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getUptime())
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 13)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("Uptime: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getUptime())
+Else
+  ConsoleLocate(40, 9)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("Uptime: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getUptime())
+EndIf
 
 ; Print running processes
-ConsoleLocate(40, 14)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("Processes: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getCurrentRunningProcesses())
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 14)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("Processes: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getCurrentRunningProcesses())
+EndIf
 
 ; Print resolution data
-ConsoleLocate(40, 15)
-ConsoleColor(#PB_RED, #PB_BLACK) : Print("Resolution: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getScreenRes())
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(40, 15)
+  ConsoleColor(#PB_RED, #PB_BLACK) : Print("Resolution: ") : ConsoleColor(#PB_WHITE, #PB_BLACK) : Print(getScreenRes())
+EndIf
 
 ; Print Color bar
-ConsoleLocate(42, 17)
-ConsoleColor(#PB_RED, #PB_RED) : Print("   ") : ConsoleColor(#PB_GREEN, #PB_GREEN) : Print("   ") : ConsoleColor(#PB_YELLOW, #PB_YELLOW) : Print("   ") : ConsoleColor(#PB_DARKBLUE, #PB_DARKBLUE) : Print("   ") : ConsoleColor(#PB_MAGENTA, #PB_MAGENTA) : Print("   ") : ConsoleColor(#PB_BLUE, #PB_BLUE) : Print("   ") : ConsoleColor(#PB_GREY, #PB_GREY) : Print("   ") : PrintN("")
+If currentOS = #PB_WIN_XP_VISTA_7_2008 Or currentOS = #PB_WIN_8_81_10_2012
+  ConsoleLocate(42, 17)
+  ConsoleColor(#PB_RED, #PB_RED) : Print("   ") : ConsoleColor(#PB_GREEN, #PB_GREEN) : Print("   ") : ConsoleColor(#PB_YELLOW, #PB_YELLOW) : Print("   ") : ConsoleColor(#PB_DARKBLUE, #PB_DARKBLUE) : Print("   ") : ConsoleColor(#PB_MAGENTA, #PB_MAGENTA) : Print("   ") : ConsoleColor(#PB_BLUE, #PB_BLUE) : Print("   ") : ConsoleColor(#PB_GREY, #PB_GREY) : Print("   ") : PrintN("")
+Else
+  ConsoleLocate(40, 11)
+  ConsoleColor(#PB_RED, #PB_RED) : Print("   ") : ConsoleColor(#PB_GREEN, #PB_GREEN) : Print("   ") : ConsoleColor(#PB_YELLOW, #PB_YELLOW) : Print("   ") : ConsoleColor(#PB_DARKBLUE, #PB_DARKBLUE) : Print("   ") : ConsoleColor(#PB_MAGENTA, #PB_MAGENTA) : Print("   ") : ConsoleColor(#PB_BLUE, #PB_BLUE) : Print("   ") : ConsoleColor(#PB_GREY, #PB_GREY) : Print("   ") : PrintN("")
+EndIf
 
 ; Reset the console
 ConsoleColor(#PB_WHITE, #PB_BLACK) : ConsoleLocate(42, 18) : EnableGraphicalConsole(0)
@@ -818,7 +892,7 @@ ConsoleColor(#PB_WHITE, #PB_BLACK) : ConsoleLocate(42, 18) : EnableGraphicalCons
 ;Input()
 ; IDE Options = PureBasic 5.70 LTS (Windows - x64)
 ; ExecutableFormat = Console
-; CursorPosition = 817
-; FirstLine = 763
+; CursorPosition = 875
+; FirstLine = 836
 ; Folding = ---
-; Executable = bin\nanofetch.exe
+; Executable = bin\x64\nanofetch.exe
