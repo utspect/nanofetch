@@ -1,5 +1,7 @@
 # nanofetch
-> A native command-line system information utility for Windows 7/8/8.1/10 and server equivalents.
+> A native command-line system information utility for Windows 2000/XP/Vista/7/8/8.1/10 and server equivalents.
+
+<img src="https://i.imgur.com/hc6lnkG.png" alt="nanofetch win2k" align="right" height="230px" width="350">
 
 **nanofetch** is a native command-line system information utility written in PureBasic for a myriad of Windows versions.
 
@@ -8,3 +10,6 @@ I felt like there wasn't a decent native and fast implementation of fetch for Wi
 
 # Installation
 Just drop the appropriate version for your CPU in a directory, add it to your PATH and call it via your favourite terminal emulator or directly via cmd.
+
+# Bugs
+Report any bugs as an Issue and I'll take a look whenever possible.
